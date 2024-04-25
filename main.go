@@ -15,8 +15,8 @@ const (
 )
 
 func main() {
-	inputFile := flag.String("i", "input.txt", "Input File")
-	debugFlag := flag.Bool("d", false, "Debug Mode")
+	inputFile := flag.String("i", "input.txt", "Input file path")
+	debugFlag := flag.Bool("d", false, "Debug mode will print interpreted input file and grid after each placement")
 	flag.Parse()
 
 	// Initialize the Tetris grid
@@ -75,7 +75,7 @@ func processLine(line string, grid [][]int, debugFlag bool) {
 		if err != nil {
 			fmt.Errorf("error creating tetromino: %v", err)
 		}
-		shapes.DropTetromino(&tetromino, grid, debugFlag)
+		tetromino.Drop(grid, debugFlag)
 	}
 }
 

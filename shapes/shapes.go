@@ -5,54 +5,50 @@ import (
 	"strings"
 )
 
+type Shape [][]int
+
+// Map for storing Tetrimino shapes
+var shapeMap = map[string]Shape{
+	"Q": {
+		{1, 1},
+		{1, 1},
+	},
+	"Z": {
+		{1, 1, 0},
+		{0, 1, 1},
+	},
+	"S": {
+		{0, 1, 1},
+		{1, 1, 0},
+	},
+	"T": {
+		{1, 1, 1},
+		{0, 1, 0},
+	},
+	"I": {
+		{1, 1, 1, 1},
+	},
+	"L": {
+		{1, 0},
+		{1, 0},
+		{1, 1},
+	},
+	"J": {
+		{0, 1},
+		{0, 1},
+		{1, 1},
+	},
+}
+
 type Tetromino struct {
-	Shape [][]int
+	Shape Shape
 	X     int // X position on the board
 	Y     int // Y position on the board
 }
 
-// NewTetromino creates a new Tetrimono of the specified  type at the given position
 func NewTetromino(tetriminoType string, x, y int) (Tetromino, error) {
-	var shape [][]int
-	switch tetriminoType {
-	case "Q": // Square
-		shape = [][]int{
-			{1, 1},
-			{1, 1},
-		}
-	case "Z":
-		shape = [][]int{
-			{1, 1, 0},
-			{0, 1, 1},
-		}
-	case "S":
-		shape = [][]int{
-			{0, 1, 1},
-			{1, 1, 0},
-		}
-	case "T":
-		shape = [][]int{
-			{1, 1, 1},
-			{0, 1, 0},
-		}
-	case "I":
-		shape = [][]int{
-			{1, 1, 1, 1},
-		}
-	case "L":
-		shape = [][]int{
-			{1, 0},
-			{1, 0},
-			{1, 1},
-		}
-	case "J":
-		shape = [][]int{
-			{0, 1},
-			{0, 1},
-			{1, 1},
-		}
-	default:
-
+	shape, exists := shapeMap[tetriminoType]
+	if !exists {
 		return Tetromino{}, fmt.Errorf("unknown tetrimino type: %s", tetriminoType)
 	}
 	return Tetromino{Shape: shape, X: x, Y: y}, nil
@@ -70,7 +66,7 @@ func (t *Tetromino) String() string {
 	// Adjust for shapes larger than 2x2 but not full 4x4
 	offsetX, offsetY := max((4-len(t.Shape[0]))/2, 0), max((4-len(t.Shape))/2, 0)
 
-	// Place the tetromino Shape in the grid
+	// place the tetromino Shape in the grid
 	for i, row := range t.Shape {
 		for j, val := range row {
 			if val != 0 {
@@ -93,26 +89,19 @@ func (t *Tetromino) String() string {
 	return sb.String()
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func DropTetromino(t *Tetromino, grid [][]int, debugFlag bool) {
+func (t *Tetromino) Drop(grid [][]int, debugFlag bool) {
 	yPos := 0 // Start from the top of the grid
-	for canMoveDown(t, yPos, grid) {
+	for t.canMoveDown(yPos, grid) {
 		yPos++ // Increment yPos until the Tetromino can no longer move down
 	}
 	//yPos--                        // Subtract one because the loop exits when Tetromino can no longer move down
-	placeTetromino(t, yPos, grid, debugFlag) // Now place the Tetromino at the calculated position
+	t.place(yPos, grid, debugFlag) // Now place the Tetromino at the calculated position
 	if debugFlag {
-		PrintGrid(grid)
+		printGrid(grid)
 	}
 }
 
-func canMoveDown(t *Tetromino, yPos int, grid [][]int) bool {
+func (t *Tetromino) canMoveDown(yPos int, grid [][]int) bool {
 	// Check if moving down would cause collision with bottom or another Tetromino
 	for i, row := range t.Shape {
 		for j, val := range row {
@@ -128,8 +117,8 @@ func canMoveDown(t *Tetromino, yPos int, grid [][]int) bool {
 	return true
 }
 
-func placeTetromino(t *Tetromino, yPos int, grid [][]int, debugFlag bool) {
-	// Place the Tetromino in the grid at the specified y position
+func (t *Tetromino) place(yPos int, grid [][]int, debugFlag bool) {
+	// place the Tetromino in the grid at the specified y position
 	for i, row := range t.Shape {
 		for j, val := range row {
 			newX := t.X + j
@@ -139,7 +128,7 @@ func placeTetromino(t *Tetromino, yPos int, grid [][]int, debugFlag bool) {
 			}
 		}
 	}
-	ClearFullRows(grid, debugFlag)
+	clearFullRows(grid, debugFlag)
 }
 
 func CalculateHeight(grid [][]int, debugFlag bool) int {
@@ -165,7 +154,7 @@ func CalculateHeight(grid [][]int, debugFlag bool) int {
 	}
 	if debugFlag {
 		fmt.Println("Grid during height calculation:")
-		PrintGrid(grid)
+		printGrid(grid)
 	}
 
 	// Calculate the height based on the last filled row.
@@ -177,8 +166,10 @@ func CalculateHeight(grid [][]int, debugFlag bool) int {
 	}
 }
 
-func ClearFullRows(grid [][]int, debugFlag bool) {
-	//PrintGrid(grid)
+func clearFullRows(grid [][]int, debugFlag bool) {
+	if debugFlag {
+		printGrid(grid)
+	}
 	rowCount := len(grid)
 	colCount := len(grid[0])
 
@@ -207,9 +198,9 @@ func ClearFullRows(grid [][]int, debugFlag bool) {
 	}
 }
 
-// PrintGrid prints the grid to the console where each cell is either filled or empty.
+// printGrid prints the grid to the console where each cell is either filled or empty.
 // Empty cells are represented by '.' and filled cells by '#'.
-func PrintGrid(grid [][]int) {
+func printGrid(grid [][]int) {
 	for y := 0; y < len(grid); y++ {
 		hasFilledCell := false // Track if the current row has any filled cells
 		rowOutput := ""        // Build the output for the current row
