@@ -1,6 +1,7 @@
 package shapes
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -12,6 +13,7 @@ func TestNewTetromino(t *testing.T) {
 		x             int
 		y             int
 		want          Tetromino
+		wantErr       bool
 	}{
 		{
 			name:          "Q type",
@@ -19,13 +21,14 @@ func TestNewTetromino(t *testing.T) {
 			x:             1,
 			y:             1,
 			want: Tetromino{
-				shape: [][]int{
+				Shape: [][]int{
 					{1, 1},
 					{1, 1},
 				},
-				x: 1,
-				y: 1,
+				X: 1,
+				Y: 1,
 			},
+			wantErr: false,
 		},
 		{
 			name:          "S type",
@@ -33,29 +36,275 @@ func TestNewTetromino(t *testing.T) {
 			x:             2,
 			y:             2,
 			want: Tetromino{
-				shape: [][]int{
+				Shape: [][]int{
 					{0, 1, 1},
 					{1, 1, 0},
 				},
-				x: 2,
-				y: 2,
+				X: 2,
+				Y: 2,
 			},
+			wantErr: false,
 		},
-		// include tests for other types and edge cases accordingly
 		{
-			name:          "Unkown type",
+			name:          "Unknown type",
 			tetriminoType: "Unknown",
 			x:             0,
 			y:             0,
 			want:          Tetromino{},
+			wantErr:       true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewTetromino(tt.tetriminoType, tt.x, tt.y); !reflect.DeepEqual(got, tt.want) {
+			got, err := NewTetromino(tt.tetriminoType, tt.x, tt.y)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewTetromino() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewTetromino() = %v, want %v", got, tt.want)
 			}
 		})
 	}
+}
+
+// Add unit tests for clearing full rows
+// Add unit tests for checking Tetromino placement
+func TestPlaceTetromino(t *testing.T) {
+	tests := []struct {
+		name          string
+		tetriminoType string
+		x             int
+		y             int
+		startY        int
+		grid          [][]int
+		expected      [][]int
+		wantErr       bool
+	}{
+		{
+			name:          "Place Q at top left",
+			tetriminoType: "Q",
+			x:             0,
+			y:             0,
+			startY:        0,
+			grid:          makeEmptyGrid(4, 4),
+			expected: [][]int{
+				{1, 1, 0, 0},
+				{1, 1, 0, 0},
+				{0, 0, 0, 0},
+				{0, 0, 0, 0},
+			},
+			wantErr: false,
+		},
+		{
+			name:          "Place Q at top x=1",
+			tetriminoType: "Q",
+			x:             1,
+			y:             0,
+			startY:        0,
+			grid:          makeEmptyGrid(4, 4),
+			expected: [][]int{
+				{0, 1, 1, 0},
+				{0, 1, 1, 0},
+				{0, 0, 0, 0},
+				{0, 0, 0, 0},
+			},
+			wantErr: false,
+		},
+		{
+			name:          "Place Q at bottom right",
+			tetriminoType: "Q",
+			x:             2,
+			y:             2,
+			startY:        2,
+			grid:          makeEmptyGrid(4, 4),
+			expected: [][]int{
+				{0, 0, 0, 0},
+				{0, 0, 0, 0},
+				{0, 0, 1, 1},
+				{0, 0, 1, 1},
+			},
+			wantErr: false,
+		},
+		{
+			name:          "Invalid tetromino type",
+			tetriminoType: "Unknown",
+			x:             0,
+			y:             0,
+			startY:        0,
+			grid:          makeEmptyGrid(4, 4),
+			expected:      makeEmptyGrid(4, 4),
+			wantErr:       true,
+		},
+		// More tests for other scenarios and tetromino types
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tetromino, err := NewTetromino(tt.tetriminoType, tt.x, tt.y)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewTetromino() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				return // Do not proceed if an error is expected and received
+			}
+			placeTetromino(&tetromino, tt.startY, tt.grid)
+			if !reflect.DeepEqual(tt.grid, tt.expected) {
+				t.Errorf("placeTetromino() for %s, got grid = %v, want %v", tt.name, tt.grid, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCalculateHeight(t *testing.T) {
+	tests := []struct {
+		name     string
+		grid     [][]int
+		expected int
+	}{
+		{
+			name: "Single Q block at bottom left",
+			grid: [][]int{
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+				{1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+			},
+			expected: 2, // The 'Q' block fills the two bottommost rows
+		},
+		{
+			name: "two Q's",
+			grid: [][]int{
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 1, 1, 0, 1, 1, 0, 0, 0, 0},
+				{0, 1, 1, 0, 1, 1, 0, 0, 0, 0},
+			},
+			expected: 2, // The 'Q' blocks are still only 2 high
+		},
+		{
+			name: "L on top of Q's",
+			grid: [][]int{
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				{1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+				{0, 1, 1, 0, 1, 1, 0, 1, 1, 0},
+				{0, 1, 1, 0, 1, 1, 0, 1, 1, 0},
+			},
+			expected: 5, // The 'Q' blocks are still only 2 high
+		},
+		// Additional test cases can be added here.
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := CalculateHeight(tt.grid)
+			if result != tt.expected {
+				t.Errorf("TestCalculateHeight failed for %s: expected height %d, got %d", tt.name, tt.expected, result)
+			}
+		})
+	}
+}
+
+// Add unit tests for clearing full rows
+func TestClearFullRows(t *testing.T) {
+	tests := []struct {
+		name     string
+		grid     [][]int
+		expected [][]int
+	}{
+		{
+			name: "Clear single full row",
+			grid: [][]int{
+				{1, 1, 0, 0},
+				{1, 1, 1, 1}, // This row should be cleared
+				{0, 1, 1, 0},
+				{0, 0, 0, 0},
+			},
+			expected: [][]int{
+				{0, 0, 0, 0},
+				{1, 1, 0, 0},
+				{0, 1, 1, 0},
+				{0, 0, 0, 0},
+			},
+		},
+		{
+			name: "Clear 2 full rows",
+			grid: [][]int{
+				{1, 1, 0, 0},
+				{1, 1, 1, 1}, // This row should be cleared
+				{1, 1, 1, 1},
+				{0, 0, 0, 0},
+			},
+			expected: [][]int{
+				{0, 0, 0, 0},
+				{0, 0, 0, 0},
+				{1, 1, 0, 0},
+				{0, 0, 0, 0},
+			},
+		},
+		// More tests for multiple full rows, edge cases, etc.
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ClearFullRows(tt.grid)
+			if !reflect.DeepEqual(tt.grid, tt.expected) {
+				t.Errorf("clearFullRows() for %s, got grid = %v, want %v", tt.name, tt.grid, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDropTetromino(t *testing.T) {
+	width, height := 10, 10
+
+	for x := 0; x <= width-2; x++ { // Ensure the 2x2 'Q' block fits within the grid's width
+		t.Run(fmt.Sprintf("Drop Q Tetromino from x=%d", x), func(t *testing.T) {
+			grid := makeEmptyGrid(height, width)    // Create a grid of height 10 and width 10
+			tetromino, _ := NewTetromino("Q", x, 0) // Create a 'Q' Tetromino starting at different x positions
+
+			// Expected final grid after dropping the Tetromino
+			expectedGrid := makeEmptyGrid(height, width)
+			expectedGrid[height-2][x] = 1
+			expectedGrid[height-2][x+1] = 1
+			expectedGrid[height-1][x] = 1
+			expectedGrid[height-1][x+1] = 1
+
+			// Drop the Tetromino
+			DropTetromino(&tetromino, grid)
+
+			if !reflect.DeepEqual(grid, expectedGrid) {
+				t.Errorf("DropTetromino failed: expected grid to have the Tetromino at x=%d, got different placement", x)
+			}
+		})
+	}
+}
+
+// Utility function to create an empty grid
+func makeEmptyGrid(rows, cols int) [][]int {
+	grid := make([][]int, rows)
+	for i := range grid {
+		grid[i] = make([]int, cols)
+	}
+	return grid
 }
